@@ -31,12 +31,24 @@ pub struct Header {
 impl Header {
     /// Returns a new valid genesis header.
     fn genesis() -> Self {
-        todo!("Exercise 1")
+        return Header {
+			parent: 0,
+			height: 0,
+			extrinsic: 0,
+			state: 0,
+			consensus_digest: (),
+		};
     }
 
     /// Create and return a valid child header.
     fn child(&self, extrinsic: u64) -> Self {
-        todo!("Exercise 2")
+        return Header {
+			parent: hash(self),
+			height: self.height + 1,
+			extrinsic: extrinsic,
+			state: self.state+extrinsic,
+			consensus_digest: (),
+		};
     }
 
     /// Verify that all the given headers form a valid chain from this header to the tip.
@@ -48,7 +60,23 @@ impl Header {
     /// So in order for a block to verify, we must have that relationship between the extrinsic,
     /// the previous state, and the current state.
     fn verify_sub_chain(&self, chain: &[Header]) -> bool {
-        todo!("Exercise 3")
+        let chain_len = chain.len();
+		if chain_len == 0 {
+			return true; // it is just an empty
+		}
+		if chain_len == 1 {
+			return false; // cannot verify
+		}
+		for block_i in 0..chain_len-1 {
+			let parent = &chain[block_i];
+			if hash(parent) != chain[block_i+1].parent {
+				return false;
+			}
+            if chain[block_i+1].state - parent.state !=  chain[block_i+1].extrinsic {
+                return false;
+            }
+		}
+		return true;
     }
 }
 
@@ -56,7 +84,13 @@ impl Header {
 
 /// Build and return a valid chain with the given number of blocks.
 fn build_valid_chain(n: u64) -> Vec<Header> {
-    todo!("Exercise 4")
+    let g = Header::genesis();
+	let mut chain = vec![g];
+	for i in 0..n as usize {
+		let c = chain[i].child(i as u64);
+		chain.push(c);
+	}
+	chain
 }
 
 /// Build and return a chain with at least three headers.
@@ -70,7 +104,14 @@ fn build_valid_chain(n: u64) -> Vec<Header> {
 /// For this function, ONLY USE the the `genesis()` and `child()` methods to create blocks.
 /// The exercise is still possible.
 fn build_an_invalid_chain() -> Vec<Header> {
-    todo!("Exercise 5")
+    let g = Header::genesis();
+	let mut chain = vec![g];
+	for i in 0..4 {
+		let mut c = chain[i].child(i as u64);
+		c.parent = c.parent+123;
+		chain.push(c);
+	}
+	chain
 }
 
 /// Build and return two header chains.
@@ -85,7 +126,25 @@ fn build_an_invalid_chain() -> Vec<Header> {
 ///
 /// Side question: What is the fewest number of headers you could create to achieve this goal.
 fn build_forked_chain() -> (Vec<Header>, Vec<Header>) {
-    todo!("Exercise 6")
+    let g = Header::genesis();
+
+	let mut chain = vec![g];
+	for i in 0..5 as usize {
+		let c = chain[i].child(i as u64);
+		chain.push(c);
+	}
+
+	let mut chain2:Vec<Header> = vec![]; 
+	for block in chain[..2].iter(){
+		chain2.push(block.clone());
+	}
+
+	for i in 1..4 as usize {
+		let c = chain2[i].child(i as u64 + 100);
+		chain2.push(c);
+	}
+
+	(chain,chain2)
 
     // Exercise 7: After you have completed this task, look at how its test is written below.
     // There is a critical thinking question for you there.
@@ -215,5 +274,10 @@ fn bc_2_verify_forked_chain() {
     // Question for students: I've only compared the last blocks here.
     // Is that enough? Is it possible that the two chains have the same final block,
     // but differ somewhere else?
+    // Answer imo the answer is  NO as the has is in function of the extrisinc of each node:
+    // I forked chainged the extrinsic so after the fork the only chance to get the same node
+    // is to have the same state and the same parent hash  (statisically impossible) which
+    // is unlikly to happen. 
+ 
     assert_ne!(c1.last(), c2.last());
 }
