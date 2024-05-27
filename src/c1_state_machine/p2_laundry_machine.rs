@@ -40,8 +40,94 @@ impl StateMachine for ClothesMachine {
     type Transition = ClothesAction;
 
     fn next_state(starting_state: &ClothesState, t: &ClothesAction) -> ClothesState {
-        todo!("Exercise 3")
-    }
+
+		match t {
+			ClothesAction::Wear =>{
+				match starting_state {
+					ClothesState::Clean(value) =>{
+						let s = ClothesState::Dirty(value - 1);
+						if s ==  ClothesState::Dirty(0) {
+							return ClothesState::Tattered;
+						}
+						return s;  
+					},
+					ClothesState::Dirty(value)=>{
+						let s = ClothesState::Dirty(value - 1);
+						if s ==  ClothesState::Dirty(0) {
+							return ClothesState::Tattered;
+						}
+						return s;
+					},
+					ClothesState::Wet(value) =>{
+						let s = ClothesState::Dirty(value - 1);
+						if s ==  ClothesState::Dirty(0) {
+							return ClothesState::Tattered;
+						}
+						return s;
+					},
+					ClothesState::Tattered => {
+						ClothesState::Tattered
+					}
+				}
+			},
+			ClothesAction::Wash =>{
+				match starting_state {
+					ClothesState::Clean(value) =>{
+						let s = ClothesState::Wet(value - 1);
+						if s ==  ClothesState::Wet(0) {
+							return ClothesState::Tattered;
+						}
+						return s;
+					},
+					ClothesState::Dirty(value)=>{
+						let s = ClothesState::Wet(value - 1);
+						if s ==  ClothesState::Wet(0) {
+							return ClothesState::Tattered;
+						}
+						return s;
+					},
+					ClothesState::Wet(value) =>{
+						let s = ClothesState::Wet(value - 1);
+						if s ==  ClothesState::Wet(0) {
+							return ClothesState::Tattered;
+						}
+						return s;
+					},
+					ClothesState::Tattered => {
+						ClothesState::Tattered
+					}
+				}
+			}
+			ClothesAction::Dry  =>{
+				match starting_state {
+					ClothesState::Clean(value) =>{
+						let s = ClothesState::Clean(value - 1);
+						if s ==  ClothesState::Clean(0) {
+							return ClothesState::Tattered;
+						}
+						return s;
+					},
+					ClothesState::Dirty(value)=>{
+						let s = ClothesState::Dirty(value - 1);
+						if s ==  ClothesState::Dirty(0) {
+							return ClothesState::Tattered;
+						}
+						return s;  
+					},
+					ClothesState::Wet(value) =>{
+						let s = ClothesState::Wet(value - 1);
+						if s ==  ClothesState::Wet(0) {
+							return ClothesState::Tattered;
+						}
+						return ClothesState::Clean(value - 1);
+					},
+					ClothesState::Tattered => {
+						ClothesState::Tattered
+					}
+				}
+			},
+		}
+	}
 }
 
 #[test]
