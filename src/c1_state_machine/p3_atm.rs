@@ -58,8 +58,103 @@ impl StateMachine for Atm {
     type Transition = Action;
 
     fn next_state(starting_state: &Self::State, t: &Self::Transition) -> Self::State {
-        todo!("Exercise 4")
-    }
+		
+		match t {
+			 
+			 Action::SwipeCard(pin) => {
+				return  Atm{cash_inside:starting_state.cash_inside, expected_pin_hash:Auth::Authenticating(*pin), keystroke_register: starting_state.keystroke_register.clone()};
+			 },
+
+			 Action::PressKey(key) => {
+				match key {
+					
+					Key::Enter =>{
+						let hash:u64  = crate::hash(&starting_state.keystroke_register);
+						if Auth::Authenticating(hash) == starting_state.expected_pin_hash {
+							return  Atm {
+								cash_inside:starting_state.cash_inside,
+								expected_pin_hash:Auth::Authenticated,
+								keystroke_register: Vec::<Key>::new()
+							};
+						}
+
+						if Auth::Authenticated == starting_state.expected_pin_hash {
+							let mut new_cash_amount = starting_state.cash_inside as u64;
+
+							
+							let mut withdrawal = 0;
+							let mut d:u64 = starting_state.keystroke_register.len() as u64;
+							
+							for n in starting_state.keystroke_register.iter() {
+								withdrawal += match *n {
+									Key::One   => 1,
+									Key::Three => 3,
+									Key::Two   => 2,
+									Key::Four  => 4,
+									_ => 0
+								} * 10u64.wrapping_pow((d-1u64) as u32);
+								d -= 1;
+								
+							}
+
+							new_cash_amount = if withdrawal > new_cash_amount {
+								new_cash_amount 
+							}
+							else {
+								new_cash_amount -= withdrawal;
+								new_cash_amount
+							};
+
+							return  Atm {
+									cash_inside:new_cash_amount,
+									expected_pin_hash:Auth::Waiting,
+									keystroke_register: Vec::<Key>::new()
+								};
+						}
+						
+						return  Atm {
+							cash_inside:starting_state.cash_inside,
+							expected_pin_hash:Auth::Waiting,
+							keystroke_register:Vec::<Key>::new()
+						};
+					},
+
+					_ => {
+
+						match starting_state.expected_pin_hash {
+							Auth::Authenticated => {
+								
+								let mut sr = starting_state.keystroke_register.clone() ;
+								sr.push(key.clone());
+								return  Atm {
+										cash_inside:starting_state.cash_inside,
+									    expected_pin_hash:starting_state.expected_pin_hash.clone(),
+										keystroke_register:sr
+									};
+							},
+
+							Auth::Waiting => {
+								return  Atm {
+									cash_inside:starting_state.cash_inside,
+									expected_pin_hash:starting_state.expected_pin_hash.clone(),
+									keystroke_register:starting_state.keystroke_register.clone() 
+								};
+							},
+
+							Auth::Authenticating(_) =>{
+								let mut ksr  = starting_state.keystroke_register.clone();
+								ksr.push(key.clone());
+								return  Atm {
+									cash_inside:starting_state.cash_inside,
+									expected_pin_hash:starting_state.expected_pin_hash.clone(),keystroke_register:ksr };
+							}
+						}
+					},
+
+				}
+			},	
+		}
+	}
 }
 
 #[test]
