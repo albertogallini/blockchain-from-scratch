@@ -45,8 +45,82 @@ impl StateMachine for AccountedCurrency {
     type Transition = AccountingTransaction;
 
     fn next_state(starting_state: &Balances, t: &AccountingTransaction) -> Balances {
-        todo!("Exercise 1")
-    }
+		
+		match t {
+
+			AccountingTransaction::Mint {minter,amount} => {
+				let mut s = starting_state.clone(); 
+				let amount_value = s.get_mut(minter);
+				match  amount_value {
+					Some(value) => {
+						*value += amount;
+					}
+					None => {
+						if *amount > 0 {
+							s.insert(*minter, *amount);
+						}
+						
+					}
+				}
+				s
+			},
+
+			AccountingTransaction::Burn {burner,amount} => {
+				let mut s = starting_state.clone(); 
+				let amount_value = s.get_mut(burner);
+				match  amount_value {
+					Some(value) => {
+						if amount >= value {
+							s.remove(burner);
+						}
+						else {
+							*value -= amount;
+						}
+					}
+					None => {
+						()
+					}
+				}
+				s
+			},
+
+			AccountingTransaction::Transfer{sender, receiver, amount} => {
+				let mut s = starting_state.clone(); 
+				let amount_value_sender   = s.get(sender);
+				let amount_value_receiver = s.get(receiver);
+
+				match (amount_value_sender, amount_value_receiver) {
+					
+					(Some(value_s),Some(value_r)) =>{
+						if amount < value_s {
+							s.entry(*sender).and_modify(|v|  -> (){*v -= *amount});
+							s.entry(*receiver).and_modify(|v|-> (){*v += *amount});
+						}
+						else if *value_s == *amount { // remove the sender
+							s.remove_entry(sender);
+							s.entry(*receiver).and_modify(|v|-> (){*v += *amount});
+						} 
+					}
+
+					(Some(value_s),None) => {
+						if amount < value_s {
+							s.entry(*sender).and_modify(|v|  -> (){*v -= *amount});
+							s.insert(*receiver, *amount);
+						}
+						else if *value_s == *amount { // remove the sender
+							s.remove_entry(sender);
+							s.insert(*receiver,  *amount);
+						} 
+					}
+					_ => { 
+						()
+					}
+					
+				}
+				s
+			},
+		}
+	}
 }
 
 #[test]
