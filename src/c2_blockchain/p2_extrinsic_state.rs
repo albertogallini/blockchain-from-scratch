@@ -64,22 +64,19 @@ impl Header {
 		if chain_len == 0 {
 			return true; // it is just an empty
 		}
-		if chain_len == 1 {
-			return false; // cannot verify
-		}
-		for block_i in 0..chain_len-1 {
-			let parent = &chain[block_i];
-			if hash(parent) != chain[block_i+1].parent {
-				return false;
-			}
-            if  parent.height+1 != chain[block_i+1].height {
-				return false;
-			}
-            if chain[block_i+1].state - parent.state !=  chain[block_i+1].extrinsic {
-                return false;
-            }
-		}
-		return true;
+		
+        let next_block = &chain[0];
+        if hash(self) != next_block.parent {
+            return false;
+        }
+        if  self.height+1 != next_block.height {
+            return false;
+        }
+        if next_block.state - self.state !=  next_block.extrinsic {
+            return false;
+        }
+		
+		return next_block.verify_sub_chain(&chain[1..]);
     }
 }
 
