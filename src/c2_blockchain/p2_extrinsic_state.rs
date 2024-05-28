@@ -72,7 +72,7 @@ impl Header {
 			if hash(parent) != chain[block_i+1].parent {
 				return false;
 			}
-            if  parent.height+1s != chain[block_i+1].height {
+            if  parent.height+1 != chain[block_i+1].height {
 				return false;
 			}
             if chain[block_i+1].state - parent.state !=  chain[block_i+1].extrinsic {
