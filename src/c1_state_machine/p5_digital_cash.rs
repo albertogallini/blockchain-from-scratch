@@ -94,7 +94,59 @@ impl StateMachine for DigitalCashSystem {
     type Transition = CashTransaction;
 
     fn next_state(starting_state: &Self::State, t: &Self::Transition) -> Self::State {
-        todo!("Exercise 1")
+        match t {
+
+			CashTransaction::Mint {minter,amount} => {
+				let b = Bill{owner:*minter,amount:*amount,serial:starting_state.next_serial()};
+				let mut s = starting_state.clone();
+				s.add_bill(b);
+				s
+			},
+
+			CashTransaction::Transfer {spends,receives} => {
+				if spends.is_empty()   { return starting_state.clone() };
+
+				
+				for b in starting_state.bills.iter() {
+					for r in receives {
+						if r.serial == b.serial { return starting_state.clone() } // not valid serials in r bills.
+					}
+				}
+
+				let mut output_state = starting_state.clone();
+
+				let mut s_tot_amount = 0;
+				let mut s_serials:HashSet<u64> = HashSet::new();
+
+				for s in spends{
+					//check if the sender bills are not repeated.
+					if s_serials.contains(&s.serial) { return starting_state.clone() }
+					s_serials.insert( s.serial);
+
+					if s.amount == u64::MAX { return starting_state.clone() }
+					if s.serial == u64::MAX { return starting_state.clone() }
+					if !starting_state.bills.contains(s) { return starting_state.clone() }
+					s_tot_amount += s.amount;
+
+					output_state.bills.remove(s);
+
+				}
+
+				let mut r_tot_amount = 0;
+				for r in receives{
+					if r.amount == u64::MAX || r.amount == 0 { return starting_state.clone() }
+					if r.serial == u64::MAX { return starting_state.clone() }
+					r_tot_amount += r.amount;
+					output_state.add_bill(r.clone());
+				}
+				
+				if r_tot_amount > s_tot_amount { return starting_state.clone() }
+								
+				output_state
+
+			}
+
+		}
     }
 }
 
