@@ -37,12 +37,31 @@ pub struct Header {
 impl Header {
     /// Returns a new valid genesis header.
     fn genesis() -> Self {
-        todo!("Exercise 1")
+        Header {
+			parent: 0,
+			height: 0,
+			extrinsic: 0,
+			state: 0,
+			consensus_digest: 0,
+		}
     }
 
     /// Create and return a valid child header.
     fn child(&self, extrinsic: u64) -> Self {
-        todo!("Exercise 2")
+        let mut child =  Header {
+			parent: hash(self),
+			height: self.height + 1,
+			extrinsic: extrinsic,
+			state: self.state+extrinsic,
+			consensus_digest: 10,
+		};
+
+		let mut phash = hash(&child);
+		while phash > THRESHOLD { // re-hash until we get a value below the threashold
+			child.consensus_digest += 10;
+			phash = hash(&child);
+		}
+		return child;
     }
 
     /// Verify that all the given headers form a valid chain from this header to the tip.
@@ -50,7 +69,31 @@ impl Header {
     /// In addition to all the rules we had before, we now need to check that the block hash
     /// is below a specific threshold.
     fn verify_sub_chain(&self, chain: &[Header]) -> bool {
-        todo!("Exercise 3")
+        let chain_len = chain.len();
+		
+        if self.height> 0 && hash(self) > THRESHOLD  {
+            return false
+        }
+
+        if chain_len == 0 {
+			return true; // it is just an empty
+		}
+		
+        let next_block = &chain[0];
+        if hash(self) != next_block.parent {
+            return false;
+        }
+
+        if  self.height+1 != next_block.height {
+            return false;
+        }
+
+
+        if next_block.state - self.state !=  next_block.extrinsic {
+            return false;
+        }
+		
+		return next_block.verify_sub_chain(&chain[1..]);
     }
 
     // After the blockchain ran for a while, a political rift formed in the community.
@@ -62,13 +105,72 @@ impl Header {
     /// verify that the given headers form a valid chain.
     /// In this case "valid" means that the STATE MUST BE EVEN.
     fn verify_sub_chain_even(&self, chain: &[Header]) -> bool {
-        todo!("Exercise 4")
+
+        let chain_len = chain.len();
+
+        if self.height> 0 && hash(self) > THRESHOLD  {
+            return false
+        }
+
+        if self.state % 2 == 1 && self.height > FORK_HEIGHT {
+            return false
+        }
+
+		if chain_len == 0 {
+			return true; // it is just an empty
+		}
+		
+        let next_block = &chain[0];
+        if hash(self) != next_block.parent {
+            return false;
+        }
+        
+        if  self.height+1 != next_block.height {
+            return false;
+        }
+
+        if next_block.state - self.state !=  next_block.extrinsic {
+            return false;
+        }
+		
+		return next_block.verify_sub_chain_even(&chain[1..]);
+
     }
 
     /// verify that the given headers form a valid chain.
     /// In this case "valid" means that the STATE MUST BE ODD.
     fn verify_sub_chain_odd(&self, chain: &[Header]) -> bool {
-        todo!("Exercise 5")
+        let chain_len = chain.len();
+
+        if self.height> 0 && hash(self) > THRESHOLD  {
+            return false
+        }
+
+        if self.state % 2 == 0 && self.height >  FORK_HEIGHT {
+            return false
+        }
+
+		if chain_len == 0 {
+			return true; // it is just an empty
+		}
+		
+        let next_block = &chain[0];
+        if hash(self) != next_block.parent {
+            return false;
+        }
+        
+        if  self.height+1 != next_block.height {
+            return false;
+        }
+
+       
+
+        if next_block.state - self.state !=  next_block.extrinsic {
+            return false;
+        }
+		
+		return next_block.verify_sub_chain_odd(&chain[1..]);
+
     }
 }
 
@@ -89,7 +191,22 @@ impl Header {
 /// G -- 1 -- 2
 ///            \-- 3'-- 4'
 fn build_contentious_forked_chain() -> (Vec<Header>, Vec<Header>, Vec<Header>) {
-    todo!("Exercise 6")
+    let g = Header::genesis();
+	let c1 = g.child(1); //1
+	let c2 = c1.child(1); //2
+	let chain1 = vec![g,c1,c2.clone()];
+
+	let odd1 = c2.child(1);
+	let odd2 = odd1.child(2);
+	let odd3 = odd2.child(2);
+	let chain2 = vec![odd1,odd2,odd3];
+
+	let even1 = c2.child(2);
+	let even2 = even1.child(2);
+	let even3 = even2.child(2);
+	let chain3 = vec![even1,even2,even3];
+
+	(chain1,chain3,chain2)
 }
 
 // To run these tests: `cargo test bc_3`
